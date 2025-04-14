@@ -1,0 +1,1 @@
+PYUSD Contract on Eth Testnet = "0xCaC524BcA292aaade2DF8A05cC58F0a65B1B3bB9"
