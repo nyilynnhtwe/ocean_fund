@@ -181,7 +181,6 @@ const FundraisingPlatform: React.FC = () => {
 
                 // Update toast to loading state
                 toast({
-                    id: toastId,
                     variant: "info",
                     title: "⏳ Processing...",
                     description: "Waiting for transaction confirmation",
@@ -193,7 +192,6 @@ const FundraisingPlatform: React.FC = () => {
                 await fetchBalance();
                 // Success notification
                 toast({
-                    id: toastId,
                     variant: "success",
                     title: "🎉 Campaign Launched!",
                     description: "Your fundraising campaign is now live!",
@@ -253,7 +251,6 @@ const FundraisingPlatform: React.FC = () => {
 
                 // Update toast for donation processing
                 toast({
-                    id: toastId,
                     variant: "info",
                     title: "⏳ Processing Donation...",
                     description: "Confirming transaction",
@@ -276,7 +273,6 @@ const FundraisingPlatform: React.FC = () => {
                 await tx.wait();
                 await fetchBalance();
                 toast({
-                    id: toastId,
                     variant: "success",
                     title: "🎉 Donation Successful!",
                     description: "Thank you for your support!",
@@ -315,7 +311,6 @@ const FundraisingPlatform: React.FC = () => {
                 const tx = await contract.withdrawFunds(fundraiserId);
 
                 toast({
-                    id: toastId,
                     variant: "info",
                     title: "⏳ Processing...",
                     description: "Waiting for confirmation",
@@ -324,7 +319,6 @@ const FundraisingPlatform: React.FC = () => {
                 await tx.wait();
                 await fetchBalance();
                 toast({
-                    id: toastId,
                     variant: "success",
                     title: "✅ Withdrawal Complete!",
                     description: "Funds transferred to your wallet",

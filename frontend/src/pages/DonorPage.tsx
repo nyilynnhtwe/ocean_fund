@@ -184,7 +184,6 @@ const DonorPage: React.FC = () => {
 
             // Update toast
             toast({
-                id: toastId,
                 variant: "info",
                 title: "Processing...",
                 description: "Confirming transaction"
@@ -200,7 +199,6 @@ const DonorPage: React.FC = () => {
             ]);
 
             toast({
-                id: toastId,
                 variant: "success",
                 title: "Donation Successful!",
                 description: `Thank you for donating ${donationAmount} PYUSD`
