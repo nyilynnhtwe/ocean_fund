@@ -151,13 +151,13 @@ const LandingPage: React.FC = () => {
             <footer className="bg-[#03045E] text-[#90E0EF] py-8 px-4">
                 <div className="max-w-6xl mx-auto text-center">
                     <div className="flex justify-center gap-6 mb-6">
-                        <a href="#" className="hover:text-[#48CAE4]">Terms</a>
-                        <a href="#" className="hover:text-[#48CAE4]">Privacy</a>
-                        <a href="#" className="hover:text-[#48CAE4]">Docs</a>
+                        <a href="https://www.github.com/nyilynnhtwe" className="hover:text-[#48CAE4]">Github</a>
+                        {/* <a href="#" className="hover:text-[#48CAE4]">Privacy</a>
+                        <a href="#" className="hover:text-[#48CAE4]">Docs</a> */}
                     </div>
                     <p className="text-sm">
                         Powered by Google Cloud RPC & PYUSD<br />
-                        © 2024 OceanFund. All rights reserved.
+                        © 2025 OceanFund. All rights reserved.
                     </p>
                 </div>
             </footer>
