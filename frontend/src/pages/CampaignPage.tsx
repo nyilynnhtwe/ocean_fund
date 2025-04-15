@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams } from "wouter";
 import { ethers } from "ethers";
 import { Link } from "wouter";
@@ -53,60 +53,7 @@ const CampaignPage = () => {
         }
     };
 
-    const fetchCampaignData = async () => {
-        try {
-            if (!provider || !id) return;
-
-            const contract = new ethers.Contract(
-                FUNDRAISING_PLATFORM_CONTRACT_ADDRESS,
-                FundraisingPlatformABI.abi,
-                provider
-            );
-
-            const [data, donationData] = await Promise.all([
-                contract.fundraisers(id),
-                contract.getDonations(id)
-            ]);
-            console.log({
-                id: data.id.toString(),
-                name: data.name,
-                organizer: data.organizer,
-                goal: Number(data.goal),
-                deadline: Number(data.deadline),
-                totalDonations: Number(data.totalDonations),
-                isClosed: data.isClosed
-            });
-
-            setCampaign({
-                id: data.id.toString(),
-                name: data.name,
-                organizer: data.organizer,
-                goal: Number(data.goal),
-                deadline: Number(data.deadline),
-                totalDonations: Number(data.totalDonations),
-                isClosed: data.isClosed
-            });
-
-            setDonations(donationData.map((d: any) => ({
-                donor: d.donor,
-                donorName: d.donorName,
-                note: d.note,
-                amount: Number(d.amount)
-            })));
-
-            setLoading(false);
-        } catch (error) {
-            console.error("Error fetching campaign:", error);
-            toast({
-                variant: "destructive",
-                title: "Error Loading Campaign",
-                description: "Could not fetch campaign data"
-            });
-            setLoading(false);
-        }
-    };
-
-    const donateToFundraiser = async (id:number,amount: string, donorName: string, note: string) => {
+    const donateToFundraiser = async (id: number, amount: string, donorName: string, note: string) => {
         if (!signer || !id) {
             toast({
                 variant: "destructive",
@@ -202,6 +149,95 @@ const CampaignPage = () => {
             fetchBalance();
         }
     }, [provider, id, account]);
+
+    const fetchCampaignData = useCallback(async () => {
+        try {
+            if (!provider || !id) return;
+
+            const contract = new ethers.Contract(
+                FUNDRAISING_PLATFORM_CONTRACT_ADDRESS,
+                FundraisingPlatformABI.abi,
+                provider
+            );
+
+            const [data, donationData] = await Promise.all([
+                contract.fundraisers(id),
+                contract.getDonations(id)
+            ]);
+
+            setCampaign({
+                id: data.id.toString(),
+                name: data.name,
+                organizer: data.organizer,
+                goal: Number(data.goal),
+                deadline: Number(data.deadline),
+                totalDonations: Number(data.totalDonations),
+                isClosed: data.isClosed
+            });
+
+            setDonations(donationData.map((d: any) => ({
+                donor: d.donor,
+                donorName: d.donorName,
+                note: d.note,
+                amount: Number(d.amount)
+            })));
+
+            setLoading(false);
+        } catch (error) {
+            console.error("Error fetching campaign:", error);
+            toast({
+                variant: "destructive",
+                title: "Error Loading Campaign",
+                description: "Could not fetch campaign data"
+            });
+            setLoading(false);
+        }
+    }, [provider, id, toast]); // Add dependencies
+
+
+    useEffect(() => {
+        if (!provider || !id) return;
+
+        const contract = new ethers.Contract(
+            FUNDRAISING_PLATFORM_CONTRACT_ADDRESS,
+            FundraisingPlatformABI.abi,
+            provider
+        );
+
+        const handleDonationReceived = (
+            fundraiserId: ethers.BigNumberish,
+            donor: string,
+            donorName: string,
+            note: string,
+            amount: ethers.BigNumberish
+        ) => {
+            if (fundraiserId.toString() === id) {
+                const formattedAmount = ethers.formatUnits(amount, 6);
+                toast({
+                    variant: "success",
+                    title: "🎉 New Donation!",
+                    description: `${donorName} donated ${formattedAmount} PYUSD${note ? `: "${note}"` : ''}`
+                });
+                fetchCampaignData();
+            }
+        };
+
+        // Listen for donations to this specific campaign
+        contract.on("DonationReceived", handleDonationReceived);
+
+        // Cleanup function
+        return () => {
+            contract.off("DonationReceived", handleDonationReceived);
+        };
+    }, [provider, id, fetchCampaignData, toast]); // Important dependencies
+
+
+    useEffect(() => {
+        if (provider && id) {
+            fetchCampaignData();
+            fetchBalance();
+        }
+    }, [provider, id, account, fetchCampaignData]); // Add fetchCampaignData here
 
     if (loading) return <div className="text-center py-8">Loading campaign...</div>;
     if (!campaign) return <div className="text-center py-8">Campaign not found</div>;

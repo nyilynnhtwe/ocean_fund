@@ -66,7 +66,8 @@ const DonorPage: React.FC = () => {
     }, [account, provider]);
 
 
-    const fetchFundraisers = async () => {
+    // Also memoize the fetch functions with useCallback
+    const fetchFundraisers = useCallback(async () => {
         try {
             const providerOrSigner = signer || provider;
             if (!providerOrSigner) {
@@ -101,9 +102,9 @@ const DonorPage: React.FC = () => {
         } catch (error) {
             console.error("Error fetching fundraisers:", error);
         }
-    };
+    }, [signer, provider]); // Add dependencies here
 
-    const fetchDonations = async (fundraiserId: number) => {
+    const fetchDonations = useCallback(async (fundraiserId: number) => {
         if (contract) {
             setLoadingDonations(prev => [...prev, fundraiserId]);
             try {
@@ -128,8 +129,7 @@ const DonorPage: React.FC = () => {
                 setLoadingDonations(prev => prev.filter(id => id !== fundraiserId));
             }
         }
-    };
-
+    }, [contract, toast]); // Add dependencies here
 
     const donateToFundraiser = async (
         fundraiserId: number,
@@ -218,13 +218,62 @@ const DonorPage: React.FC = () => {
     };
 
 
+    // Add this useEffect for event listening
+    useEffect(() => {
+        if (!contract) return;
+
+        const handleFundraiserCreated = (
+            id: ethers.BigNumberish,
+            organizer: string,
+            name: string,
+            goal: ethers.BigNumberish,
+            deadline: ethers.BigNumberish
+        ) => {
+            toast({
+                variant: "info",
+                title: "🎉 New Campaign Created!",
+                description: `New fundraising campaign "${name}" started with a goal of ${ethers.formatUnits(goal, 6)} PYUSD`,
+            });
+            fetchFundraisers();
+        };
+
+        const handleDonationReceived = (
+            fundraiserId: ethers.BigNumberish,
+            donor: string,
+            donorName: string,
+            note: string,
+            amount: ethers.BigNumberish
+        ) => {
+            const formattedAmount = ethers.formatUnits(amount, 6);
+            toast({
+                variant: "success",
+                title: "💖 New Donation Received!",
+                description: `${donorName} donated ${formattedAmount} PYUSD${note ? `: "${note}"` : ''}`,
+            });
+
+            const id = Number(fundraiserId);
+            fetchFundraisers();
+            fetchDonations(id);
+        };
+
+        // Add event listeners
+        contract.on("FundraiserCreated", handleFundraiserCreated);
+        contract.on("DonationReceived", handleDonationReceived);
+
+        // Cleanup function
+        return () => {
+            contract.off("FundraiserCreated", handleFundraiserCreated);
+            contract.off("DonationReceived", handleDonationReceived);
+        };
+    }, [contract, fetchFundraisers, fetchDonations, toast]); // Dependencies ensure fresh references
+
 
     useEffect(() => {
         fetchFundraisers();
         fetchBalance();
     }, [account, signer, provider, fetchBalance]);
     console.log(isActivePage);
-    
+
     const displayedCampaigns = isActivePage ? activeCampaigns : endedCampaigns;
 
 

@@ -82,8 +82,7 @@ const FundraisingPlatform: React.FC = () => {
     const { toast } = useToast();
 
 
-
-    const fetchFundraisers = async () => {
+    const fetchFundraisers = useCallback(async () => {
         try {
             const runner = signer ?? provider;
             if (!runner) {
@@ -124,10 +123,10 @@ const FundraisingPlatform: React.FC = () => {
         } catch (error) {
             console.error("Error fetching fundraisers:", error);
         }
-    };
+    }, [signer, provider, account]); // Add dependencies
 
 
-    const fetchDonations = async (fundraiserId: number) => {
+    const fetchDonations = useCallback(async (fundraiserId: number) => {
         if (contract) {
             try {
                 const donations = await contract.getDonations(fundraiserId);
@@ -139,7 +138,7 @@ const FundraisingPlatform: React.FC = () => {
                 console.error("Error fetching donations:", error);
             }
         }
-    };
+    }, [contract, toast]);
     // Update the createFundraiser function
     const createFundraiser = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -366,6 +365,93 @@ const FundraisingPlatform: React.FC = () => {
             fetchFundraisers();
         }
     }, [provider, signer, chainId]); // Correct dependencies
+
+
+    useEffect(() => {
+        if (!contract) return;
+
+        const handleFundraiserCreated = (
+            id: ethers.BigNumberish,
+            organizer: string,
+            name: string,
+            goal: ethers.BigNumberish,
+            deadline: ethers.BigNumberish
+        ) => {
+            // Only show notification for current user's campaigns
+            if (organizer.toLowerCase() === account?.toLowerCase()) {
+                toast({
+                    variant: "info",
+                    title: "🎉 New Campaign Created!",
+                    description: `Your campaign "${name}" is now live!`,
+                });
+                fetchFundraisers();
+            }
+        };
+
+        const handleDonationReceived = (
+            fundraiserId: ethers.BigNumberish,
+            donor: string,
+            donorName: string,
+            note: string,
+            amount: ethers.BigNumberish
+        ) => {
+            const id = Number(fundraiserId);
+            const formattedAmount = ethers.formatUnits(amount, 6);
+
+            // Find the affected fundraiser
+            const fundraiser = fundraisers.find(f => f.id === id);
+            if (fundraiser) {
+                toast({
+                    variant: "success",
+                    title: "💸 New Donation!",
+                    description: `${donorName} donated ${formattedAmount} PYUSD to ${fundraiser.name}`,
+                });
+
+                // Update local state immediately
+                setFundraisers(prev => prev.map(f =>
+                    f.id === id ? {
+                        ...f,
+                        totalDonations: f.totalDonations + Number(formattedAmount)
+                    } : f
+                ));
+
+                // Refresh donations list
+                fetchDonations(id);
+            }
+        };
+
+        contract.on("FundraiserCreated", handleFundraiserCreated);
+        contract.on("DonationReceived", handleDonationReceived);
+
+        return () => {
+            contract.off("FundraiserCreated", handleFundraiserCreated);
+            contract.off("DonationReceived", handleDonationReceived);
+        };
+    }, [contract, account, fundraisers, fetchFundraisers, fetchDonations, toast]);
+
+
+    useEffect(() => {
+        if (!contract) return;
+
+        const handleFundsWithdrawn = (fundraiserId: ethers.BigNumberish) => {
+            const id = Number(fundraiserId);
+            toast({
+                variant: "success",
+                title: "💰 Funds Withdrawn",
+                description: "Funds have been successfully distributed",
+            });
+
+            // Update local state
+            setFundraisers(prev => prev.map(f =>
+                f.id === id ? { ...f, isClosed: true } : f
+            ));
+        };
+
+        contract.on("WithdrawFunds", handleFundsWithdrawn);
+        return () => {
+            contract.off("WithdrawFunds", handleFundsWithdrawn);
+        };
+    }, [contract, toast]);
     return (
         <div className="min-h-screen bg-gradient-to-b from-[#CAF0F8] to-[#ADE8F4] p-4">
             <header className="bg-[#03045E] text-[#CAF0F8] shadow-lg p-6 mb-8 rounded-b-xl">
@@ -649,7 +735,7 @@ const FundraisingPlatform: React.FC = () => {
                                                             onClick={() => {
                                                                 const campaignUrl = `${window.location.origin}/campaign/${fs.id}`;
                                                                 const tweetText = encodeURIComponent(
-                                                                    `Check out this awesome campaign on OceanFund 🌊\n"${fs.name}"\n\n${campaignUrl}\n\n#OceanFund #SUI #Crypto`
+                                                                    `Check out this awesome campaign on OceanFund 🌊\n"${fs.name}"\n\n${campaignUrl}\n\n#OceanFund #Ethereum #Google #PayUSD #Paypal #Crypto`
                                                                 );
                                                                 const tweetUrl = `https://twitter.com/intent/tweet?text=${tweetText}`;
                                                                 window.open(tweetUrl, '_blank');

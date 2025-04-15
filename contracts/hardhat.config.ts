@@ -3,7 +3,7 @@ import "@nomicfoundation/hardhat-toolbox";
 import 'dotenv/config';
 
 
-const PRIVATE_KEY = process.env.PRIVATE_KEY_E11F || "0";
+const PRIVATE_KEY = process.env.DEPLOTER_WALLET_PRIVATE_KEY || "0";
 const config: HardhatUserConfig = {
   solidity: "0.8.28",
   networks: {

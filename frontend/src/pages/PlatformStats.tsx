@@ -12,29 +12,60 @@ const PlatformStats = () => {
   });
 
   useEffect(() => {
+    const provider = new ethers.JsonRpcProvider(GOOGLE_SEPOLIA_RPC);
+    const contract = new ethers.Contract(
+      FUNDRAISING_PLATFORM_CONTRACT_ADDRESS,
+      FundraisingPlatformABI.abi,
+      provider
+    );
+    console.log(contract);
+    
     const fetchStats = async () => {
-      const provider = new ethers.JsonRpcProvider(GOOGLE_SEPOLIA_RPC);
-      const contract = new ethers.Contract(
-        FUNDRAISING_PLATFORM_CONTRACT_ADDRESS,
-        FundraisingPlatformABI.abi,
-        provider
-      );
+      try {
+        const eventCount = await contract.fundraiserCount();
+        let total = 0;
+        
+        // Batch fetch all fundraisers
+        const fundraiserPromises = [];
+        for (let i = 1; i <= eventCount; i++) {
+          fundraiserPromises.push(contract.fundraisers(i));
+        }
+        
+        const allFundraisers = await Promise.all(fundraiserPromises);
+        total = allFundraisers.reduce((acc, fundraiser) => 
+          acc + Number(fundraiser.totalDonations), 0);
 
-      const eventCount = await contract.fundraiserCount();
-      let total = 0;
-      
-      for (let i = 1; i <= eventCount; i++) {
-        const fundraiser = await contract.fundraisers(i);
-        total += Number(fundraiser.totalDonations);
+        setStats({
+          totalRaised: total,
+          totalEvents: Number(eventCount)
+        });
+      } catch (error) {
+        console.error("Error fetching stats:", error);
       }
-
-      setStats({
-        totalRaised: total,
-        totalEvents: Number(eventCount)
-      });
     };
 
+    // Initial fetch
     fetchStats();
+
+    // Event listeners
+    const onFundraiserCreated = () => {
+      console.log("New fundraiser created - updating stats...");
+      fetchStats();
+    };
+
+    const onDonationReceived = () => {
+      console.log("New donation received - updating stats...");
+      fetchStats();
+    };
+
+    contract.on("FundraiserCreated", onFundraiserCreated);
+    contract.on("DonationReceived", onDonationReceived);
+
+    // Cleanup
+    return () => {
+      contract.off("FundraiserCreated", onFundraiserCreated);
+      contract.off("DonationReceived", onDonationReceived);
+    };
   }, []);
 
   return (
