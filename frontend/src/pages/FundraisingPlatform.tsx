@@ -102,8 +102,6 @@ const FundraisingPlatform: React.FC = () => {
 
             for (let i = 1; i <= count; i++) {
                 const fs = await fundraisingContract.fundraisers(i);
-                console.log();
-
                 if (fs.organizer?.toLowerCase() === account) {
                     fundraiserArray.push({
                         id: parseInt(fs.id.toString()),
@@ -144,9 +142,8 @@ const FundraisingPlatform: React.FC = () => {
         e.preventDefault();
         if (contract && provider) {
             try {
-                console.log("lee");
                 // Show loading toast
-                const toastId = toast({
+                toast({
                     variant: "info",
                     title: "🚀 Creating Campaign...",
                     description: "Please confirm the transaction in your wallet",
@@ -216,10 +213,6 @@ const FundraisingPlatform: React.FC = () => {
                     description: errorMessage,
                 });
             }
-        }
-        else {
-            console.log("eee");
-
         }
     };
 

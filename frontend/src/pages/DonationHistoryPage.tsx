@@ -42,16 +42,6 @@ const DonationsHistoryPage = () => {
                 ]);
 
                 donations.forEach((d: any) => {
-                    console.log({
-                        fundraiserId: i,
-                        donor: d.donor,
-                        donorName: d.donorName,
-                        note: d.note,
-                        amount: Number(d.amount),
-                        fundraiserName: fundraiser.name,
-                        organizer: fundraiser.organizer
-                    });
-
                     allDonations.push({
                         fundraiserId: i,
                         donor: d.donor,

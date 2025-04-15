@@ -2,37 +2,37 @@ import { useEffect, useState } from "react";
 import { ethers } from "ethers";
 import FundraisingPlatformABI from "../abis/FundraisingPlatform.json";
 import { FUNDRAISING_PLATFORM_CONTRACT_ADDRESS } from "../configs/config";
+import { useWallet } from "../configs/web3";
 
 const GOOGLE_SEPOLIA_RPC = import.meta.env.VITE_GOOGLE_SEPOLIA_RPC;
 
 const PlatformStats = () => {
+  const { provider, account, signer, chainId, isConnected } = useWallet();
   const [stats, setStats] = useState({
     totalRaised: 0,
     totalEvents: 0
   });
 
   useEffect(() => {
-    const provider = new ethers.JsonRpcProvider(GOOGLE_SEPOLIA_RPC);
+    if (!provider) return;
     const contract = new ethers.Contract(
       FUNDRAISING_PLATFORM_CONTRACT_ADDRESS,
       FundraisingPlatformABI.abi,
       provider
     );
-    console.log(contract);
-    
     const fetchStats = async () => {
       try {
         const eventCount = await contract.fundraiserCount();
         let total = 0;
-        
+
         // Batch fetch all fundraisers
         const fundraiserPromises = [];
         for (let i = 1; i <= eventCount; i++) {
           fundraiserPromises.push(contract.fundraisers(i));
         }
-        
+
         const allFundraisers = await Promise.all(fundraiserPromises);
-        total = allFundraisers.reduce((acc, fundraiser) => 
+        total = allFundraisers.reduce((acc, fundraiser) =>
           acc + Number(fundraiser.totalDonations), 0);
 
         setStats({
@@ -66,7 +66,7 @@ const PlatformStats = () => {
       contract.off("FundraiserCreated", onFundraiserCreated);
       contract.off("DonationReceived", onDonationReceived);
     };
-  }, []);
+  }, [provider]);
 
   return (
     <section className="max-w-4xl mx-auto mt-12">

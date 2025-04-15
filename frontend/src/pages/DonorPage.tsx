@@ -272,8 +272,6 @@ const DonorPage: React.FC = () => {
         fetchFundraisers();
         fetchBalance();
     }, [account, signer, provider, fetchBalance]);
-    console.log(isActivePage);
-
     const displayedCampaigns = isActivePage ? activeCampaigns : endedCampaigns;
 
 
