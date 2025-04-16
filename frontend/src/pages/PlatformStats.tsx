@@ -1,20 +1,23 @@
 import { useEffect, useState } from "react";
-import { ethers } from "ethers";
+import { ethers, JsonRpcApiProvider } from "ethers";
 import FundraisingPlatformABI from "../abis/FundraisingPlatform.json";
 import { FUNDRAISING_PLATFORM_CONTRACT_ADDRESS } from "../configs/config";
-import { useWallet } from "../configs/web3";
 
 const GOOGLE_SEPOLIA_RPC = import.meta.env.VITE_GOOGLE_SEPOLIA_RPC;
 
 const PlatformStats = () => {
-  const { provider, account, signer, chainId, isConnected } = useWallet();
+  // const { provider, account, signer, chainId, isConnected } = useWallet();
+
   const [stats, setStats] = useState({
     totalRaised: 0,
     totalEvents: 0
   });
 
   useEffect(() => {
-    if (!provider) return;
+    if (!GOOGLE_SEPOLIA_RPC) {
+      console.error("Missing VITE_GOOGLE_SEPOLIA_RPC env var");
+    }
+    const provider = new ethers.JsonRpcProvider(GOOGLE_SEPOLIA_RPC);
     const contract = new ethers.Contract(
       FUNDRAISING_PLATFORM_CONTRACT_ADDRESS,
       FundraisingPlatformABI.abi,
@@ -24,7 +27,6 @@ const PlatformStats = () => {
       try {
         const eventCount = await contract.fundraiserCount();
         let total = 0;
-
         // Batch fetch all fundraisers
         const fundraiserPromises = [];
         for (let i = 1; i <= eventCount; i++) {
@@ -43,30 +45,9 @@ const PlatformStats = () => {
         console.error("Error fetching stats:", error);
       }
     };
-
     // Initial fetch
     fetchStats();
-
-    // Event listeners
-    const onFundraiserCreated = () => {
-      console.log("New fundraiser created - updating stats...");
-      fetchStats();
-    };
-
-    const onDonationReceived = () => {
-      console.log("New donation received - updating stats...");
-      fetchStats();
-    };
-
-    contract.on("FundraiserCreated", onFundraiserCreated);
-    contract.on("DonationReceived", onDonationReceived);
-
-    // Cleanup
-    return () => {
-      contract.off("FundraiserCreated", onFundraiserCreated);
-      contract.off("DonationReceived", onDonationReceived);
-    };
-  }, [provider]);
+  }, []);
 
   return (
     <section className="max-w-4xl mx-auto mt-12">
